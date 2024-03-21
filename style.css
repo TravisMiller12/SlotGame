@@ -1,0 +1,17 @@
+#canvas1 {
+  border: 5px solid black;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 750px;
+  height: 675px;
+}
+
+body{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* This ensures the body takes up the full height of the viewport */
+  margin: 0; /* Removes default body margin */
+}
