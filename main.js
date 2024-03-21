@@ -243,4 +243,3 @@ async function playWinboxAnimations(winningSymbols) {
 
   await Promise.all(animationPromises);
 }
-
