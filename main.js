@@ -1,32 +1,3 @@
-/*
-    Hello and welcome to your 1 523'rd work assignment!
-
-    Today we are going to make a 3 reel slot that starts, spins and stops.
-    And if we are lucky enough to land the same symbol on all 3 reels, we win! WOHO!
-
-    * Reels should start, spin and stop on random positions/symbols
-    * If all 3 reels stops on the same symbol, play a win celebration.
-    * You can use the WinsweepBox[00-25] sequence for win animation.
-    * All available symbols can be found within assets.json
-
-    The assignment will be judged with the following points in mind:
-    * Creativity
-    * Structure
-    * Complexity
-    * Look'n'feel
-
-    Spritesheets can be created from https://www.codeandweb.com/tp-online
-    Example on how to get started with sprites can be found in the run() method.
-
-    If you have any questions, feel free to contact us at devlead@jaderabbitstudio.com
-*/
-
-
-
-////////////////
-
-
-
 const app = new PIXI.Application({
   width: 750,
   height: 675,
@@ -36,26 +7,24 @@ const app = new PIXI.Application({
   resolution: 1,
 });
 
-const symbolMatrix = [
-  ["Coin.png", "High1.png", "High1.png", "High1.png", "High1.png", "Low1.png", "High1.png", "Low4.png", "High4.png", "Low2.png", "Low3.png"],
-  ["High3.png", "High1.png", "High1.png", "Coin.png", "High1.png", "Low4.png", "High1.png", "High1.png", "High1.png", "High1.png", "High1.png"],
-  ["Low4.png", "High1.png", "High1.png", "High1.png", "High1.png", "High1.png", "High1.png", "High1.png", "High1.png", "Wild.png", "Low2.png"]
-];
-/*
+
+
+
 const symbolMatrix = [
   ["Coin.png", "High1.png", "Wild.png", "Bonus.png", "High2.png", "Low1.png", "High3.png", "Low4.png", "High4.png", "Low2.png", "Low3.png"],
   ["High3.png", "High4.png", "Bonus.png", "Coin.png", "Low2.png", "Low4.png", "High1.png", "Wild.png", "Low1.png", "High2.png", "Low3.png"],
   ["Low4.png", "High2.png", "Low1.png", "Bonus.png", "High1.png", "Coin.png", "High4.png", "Low3.png", "High3.png", "Wild.png", "Low2.png"]
 ];
-*/
 
 const offset = 0.5;
+let winsweepAnimationFrames;
+let winsweepAnimation;
 
 window.addEventListener("load", async () => {
   await loadAssets();
   document.body.appendChild(app.view);
   await setupReels();
-  setupSpinButton(); // Call the function to set up the spin button
+  setupSpinButton();
 });
 
 async function loadAssets() {
@@ -65,30 +34,24 @@ async function loadAssets() {
 }
 
 async function setupReels() {
-  const symbolHeight = 225; // Adjust this value based on your sprite dimensions
-  const symbolWidth = 250; // Adjust this value based on your sprite dimensions
-
+  const symbolHeight = 225;
+  const symbolWidth = 250;
   const symbolScale = Math.min(
     app.screen.width / (3 * symbolWidth),
     app.screen.height / (3 * symbolHeight)
   );
 
-  // Calculate total height occupied by symbols
-  const totalSymbolHeight = symbolMatrix[0].length * symbolHeight; // Assuming all reels have the same number of symbols
-
-  // Calculate initial Y position with padding
+  const totalSymbolHeight = symbolMatrix[0].length * symbolHeight;
   const availableVerticalSpace = app.screen.height;
   const initialYPosition = symbolHeight * offset;
   
-  // Create and position sprites based on predefined symbol order
   for (let j = 0; j < 3; j++) {
-    const xPosition = (app.screen.width / 3) * (j + 0.5); // Adjust spacing between reels
+    const xPosition = (app.screen.width / 3) * (j + 0.5);
     const symbols = symbolMatrix[j];
     for (let i = 0; i < symbols.length; i++) {
       const yPosition = initialYPosition + i * symbolHeight;
       const texture = PIXI.Texture.from(symbols[i]);
       const symbolSprite = new PIXI.Sprite(texture);
-      symbolSprite.scale.set(1); // No scaling
       symbolSprite.anchor.set(0.5);
       symbolSprite.x = xPosition;
       symbolSprite.y = yPosition;
@@ -100,60 +63,58 @@ async function setupReels() {
 function setupSpinButton() {
   const spinButton = document.getElementById('spinButton');
   spinButton.addEventListener('click', () => {
-    startSpin(); // Call startSpin() function when the button is clicked
+    startSpin();
   });
 }
 
-async function startSpin() {
-  const symbolHeight = 225; // Adjust this value based on your sprite dimensions
-  const spinAnimationDuration = 3000; // Adjust the spinning duration as needed
-  const spinDelay = 500; // Adjust the delay before starting each reel's spinning animation
+const visibleBoundsRow1 = new PIXI.Rectangle(0, 0, app.screen.width, app.screen.height / 3);
+const visibleBoundsRow2 = new PIXI.Rectangle(0, 250, app.screen.width, app.screen.height / 3);
+const visibleBoundsRow3 = new PIXI.Rectangle(0, 500, app.screen.width, app.screen.height / 3);
 
-  // Start spinning all reels simultaneously
+async function startSpin() {
+  const symbolHeight = 225;
+  const spinAnimationDuration = 3000;
+  const spinDelay = 500;
+
   const spinningPromises = [];
   for (let i = 0; i < 3; i++) {
-    spinningPromises.push(spinReel(i, symbolHeight, spinAnimationDuration, spinDelay * i)); // Introduce delay for starting each reel's spinning animation
+    spinningPromises.push(spinReel(i, symbolHeight, spinAnimationDuration, spinDelay * i));
   }
 
-  await Promise.all(spinningPromises); // Wait for all reels to finish spinning
+  await Promise.all(spinningPromises);
 
-  // After spinning animation completes, check if three symbols match on the middle row
-  //checkForMatch();
-  check();
+  checkForMatch();
 }
 
 async function spinReel(reelIndex, symbolHeight, spinAnimationDuration, startDelay) {
-  await new Promise(resolve => setTimeout(resolve, startDelay)); // Delay before starting the spinning animation for this reel
+  await new Promise(resolve => setTimeout(resolve, startDelay));
 
   const reelSprites = app.stage.children.filter(
     (child) => child.x === (app.screen.width / 3) * (reelIndex + 0.5)
   );
 
-  const spinDistance = symbolHeight * reelSprites.length; // Total distance to spin
-  const spinSpeed = spinDistance / spinAnimationDuration; // Speed to cover the distance in the given time
+  const spinDistance = symbolHeight * reelSprites.length;
+  const spinSpeed = spinDistance / spinAnimationDuration;
 
   const startTime = Date.now();
   let currentTime = Date.now();
   while (currentTime - startTime < spinAnimationDuration) {
     currentTime = Date.now();
     const elapsedTime = currentTime - startTime;
-    const deltaY = spinSpeed * elapsedTime; // Calculate distance to move based on elapsed time
+    const deltaY = spinSpeed * elapsedTime;
     reelSprites.forEach((sprite) => {
-      sprite.y += deltaY; // Move each symbol downwards
+      sprite.y += deltaY;
     });
 
-    // Check if any symbols are off the window and adjust their positions
     reelSprites.forEach((sprite) => {
       if (sprite.y > app.screen.height + symbolHeight) {
-        // Move the symbol back up to the top and adjust its position
         sprite.y = sprite.y - reelSprites.length * symbolHeight;
       }
     });
 
-    await new Promise((resolve) => requestAnimationFrame(resolve)); // Pause briefly before updating position
+    await new Promise((resolve) => requestAnimationFrame(resolve));
   }
 
-  // Calculate the final position to ensure symbols are aligned correctly without being cut off
   const finalPosition = Math.round(reelSprites[0].y / symbolHeight) * symbolHeight + (symbolHeight / 2);
   const offset = finalPosition - reelSprites[0].y;
   reelSprites.forEach((sprite) => {
@@ -161,9 +122,8 @@ async function spinReel(reelIndex, symbolHeight, spinAnimationDuration, startDel
   });
 }
 
-
-  var matches = [
-    [
+var matches = [
+  [
     [1,1,1],
     [0,0,0],
     [0,0,0]
@@ -186,7 +146,6 @@ var reels = [
   [0,0,0]
 ];
 
-
 function init() {
   for(let i =0; i < reels.length; i++){
     for(let j = 0; j < reels.length; j++){
@@ -199,83 +158,89 @@ function init() {
 
 init();
 
-function check (){
-  let sym1 = 0;
-  let sym2 = 0;
-  let sym3 = 0;
-  for (let i=0; i < matches.length; i++){
-    for(let j=0; j < matches[i].length; j++ ){
-      for(let k=0; k < matches[i][j].length; k++){
-        if(matches[i][j][k] == 1 && reels[i][j][k] == 1){
-          sym1++;
-          if(sym1 == 3){
-            sym1 = 0;
-            console.log("It's a match!");
-            return 0;
-          }
-        }
-        if(matches[i][j][k] == 1 && reels[i][j][k] == 2){
-          sym2++;
-          if(sym2 == 3){
-            sym2 = 0;
-            console.log("It's a match!");
-            return 0;
-          }
-        }
-        if(matches[i][j][k] == 1 && reels[i][j][k] == 3){
-          sym3++;
-          if(sym3 == 3){
-            sym3 = 0;
-            console.log("It's a match!");
-            return 0;
-          }
-        }
-      }
-
-    }
-    sym1 = 0;
-    sym2 = 0;
-    sym3 = 0;
-  }
-}
-
-check();
-
-
-
-
-/*
-function checkForMatch() {
+async function checkForMatch() {
   console.log("Checking for match...");
+  let win1 = 0;
+  let win2 = 0;
+  let win3 = 0;
 
-  // Count occurrences of each symbol on the visible stage
-  const symbolCounts = {};
-  const visibleBounds = new PIXI.Rectangle(0, 0, app.screen.width, app.screen.height);
-  app.stage.children.forEach((symbol) => {
-    if (visibleBounds.contains(symbol.x, symbol.y)) {
-      const symbolName = symbol.texture.textureCacheIds[0];
-      if (!symbolCounts[symbolName]) {
-        symbolCounts[symbolName] = 1;
-      } else {
-        symbolCounts[symbolName]++;
-      }
+  const symbols = app.stage.children;
+
+  // Remove existing winbox animated sprites
+  app.stage.children.forEach(child => {
+    if (child instanceof PIXI.AnimatedSprite && child.animationName === "Winbox") {
+      app.stage.removeChild(child);
     }
   });
 
-  // Check if any symbol occurs three times
-  let winSymbol = null;
-  for (const symbolName in symbolCounts) {
-    if (symbolCounts.hasOwnProperty(symbolName) && symbolCounts[symbolName] >= 3) {
-      winSymbol = symbolName;
-      break;
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const visibleBounds = i === 0 ? visibleBoundsRow1 : i === 1 ? visibleBoundsRow2 : visibleBoundsRow3;
+
+    // Filter symbols within visible bounds
+    const symbolsInRow = symbols.filter(symbol => visibleBounds.contains(symbol.x, symbol.y));
+
+    console.log(`Symbols in row ${i + 1}:`, symbolsInRow.map(symbol => symbol.texture.textureCacheIds[0]));
+
+    // Extract the first symbol name from the symbols in the row
+    const firstSymbolName = symbolsInRow[0].texture.textureCacheIds[0];
+
+    console.log(`Expected symbol in row ${i + 1}:`, match[i][0]);
+
+    // Check if all symbols in the row match the first symbol
+    const isWin = symbolsInRow.every(symbol => symbol.texture.textureCacheIds[0] === firstSymbolName);
+
+    // Increment wins based on the row and log the win
+    if (isWin) {
+      if (i === 0) win1++;
+      else if (i === 1) win2++;
+      else if (i === 2) win3++;
+      console.log(`Match at row ${i + 1}! All symbols are the same.`);
+      
+      // Play winbox animations over each winning symbol
+      await playWinboxAnimations(symbolsInRow);
     }
   }
 
-  // If a win symbol is found, log "Win Win Win!"
-  if (winSymbol) {
-    console.log(`Win Win Win! Symbol: ${winSymbol}`);
-  } else {
-    console.log("No match found.");
-  }
+  console.log(`Total wins: Row 1 - ${win1}, Row 2 - ${win2}, Row 3 - ${win3}`);
 }
-*/
+
+
+async function playWinboxAnimations(winningSymbols) {
+  const animationPromises = [];
+
+  winningSymbols.forEach(winningSymbol => {
+    const winboxTextureArray = [];
+    // Assuming 'WinsweepBox' is the prefix for winbox animation frames
+    for (let i = 0; i < 26; i++) {
+      const texture = PIXI.Texture.from(`WinsweepBox${i.toString().padStart(2, '0')}.png`);
+      winboxTextureArray.push(texture);
+    }
+
+    const winboxAnimatedSprite = new PIXI.AnimatedSprite(winboxTextureArray);
+    winboxAnimatedSprite.anchor.set(0.5);
+    winboxAnimatedSprite.animationSpeed = 0.5;
+    winboxAnimatedSprite.loop = false; // Set loop to false
+    winboxAnimatedSprite.scale.set(winningSymbol.scale.x + 0.4, winningSymbol.scale.y + 0.4); // Increase scale by 0.4
+    winboxAnimatedSprite.position.set(winningSymbol.x, winningSymbol.y); // Position winbox over winning symbol
+    winboxAnimatedSprite.animationName = "Winbox"; // Add a custom property to identify winbox animated sprites
+    
+    // Set blending mode
+    winboxAnimatedSprite.blendMode = PIXI.BLEND_MODES.ADD; // Change to the desired blending mode
+    
+    app.stage.addChild(winboxAnimatedSprite);
+
+    const animationPromise = new Promise(resolve => {
+      winboxAnimatedSprite.onComplete = () => {
+        app.stage.removeChild(winboxAnimatedSprite); // Remove winbox animation sprite after animation completes
+        resolve();
+      };
+      winboxAnimatedSprite.play(); // Play winbox animation
+    });
+
+    animationPromises.push(animationPromise);
+  });
+
+  await Promise.all(animationPromises);
+}
+
